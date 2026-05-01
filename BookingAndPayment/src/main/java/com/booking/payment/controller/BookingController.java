@@ -12,6 +12,7 @@ import java.util.List;
 /**
  * REST Controller for managing Booking requests.
  */
+@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 @RestController
 @RequestMapping("/bookings")
 @RequiredArgsConstructor

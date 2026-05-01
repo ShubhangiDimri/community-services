@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*")
 @RestController
 @RequestMapping("/events")
 public class EventController {
@@ -16,7 +17,7 @@ public class EventController {
     private EventService eventService;
 
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
+    public ResponseEntity<Event> createEvent(@javax.validation.Valid @RequestBody Event event) {
         Event savedEvent = eventService.createEvent(event);
         return ResponseEntity.ok(savedEvent);
     }
@@ -35,7 +36,7 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Event> updateEvent(@PathVariable String id, @RequestBody Event event) {
+    public ResponseEntity<Event> updateEvent(@PathVariable String id, @javax.validation.Valid @RequestBody Event event) {
         try {
             Event updatedEvent = eventService.updateEvent(id, event);
             return ResponseEntity.ok(updatedEvent);

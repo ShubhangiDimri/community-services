@@ -8,12 +8,25 @@ public class Event {
 
     @Id
     private String id;
+    
+    @javax.validation.constraints.NotBlank(message = "Title is mandatory")
     private String title;
+    
+    @javax.validation.constraints.NotBlank(message = "Description is mandatory")
     private String description;
+    
+    @javax.validation.constraints.NotBlank(message = "Date is mandatory")
     private String date;
+    
+    @javax.validation.constraints.NotBlank(message = "Time is mandatory")
     private String time;
+    
+    @javax.validation.constraints.NotBlank(message = "Location is mandatory")
     private String location;
+    
+    @javax.validation.constraints.Min(value = 0, message = "Base price cannot be negative")
     private double basePrice;
+    
     private double frontSurcharge;
     private double middleSurcharge;
     private boolean isFree;

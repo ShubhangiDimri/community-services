@@ -1,0 +1,10 @@
+com\example\forum\dto\CreatePostRequest.class
+com\example\forum\dto\CreateReplyRequest.class
+com\example\forum\repository\PostRepository.class
+com\example\forum\service\ForumService.class
+com\example\forum\model\Reply.class
+com\example\forum\dto\PostDetailResponse.class
+com\example\forum\dto\ReplyResponse.class
+com\example\forum\dto\PostSummaryResponse.class
+com\example\forum\ForumServiceApplication.class
+com\example\forum\config\CorsConfig.class

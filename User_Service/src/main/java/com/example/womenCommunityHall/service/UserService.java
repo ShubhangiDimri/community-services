@@ -7,6 +7,7 @@ import com.example.womenCommunityHall.repository.EmergencyContactRepository;
 import com.example.womenCommunityHall.repository.UserRepository;
 import com.example.womenCommunityHall.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,12 @@ public class UserService {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private org.springframework.web.client.RestTemplate restTemplate;
+
+    @Value("${services.notification.base-url:http://localhost:8089/notify}")
+    private String notificationServiceUrl;
 
     // ─────────────────────────── Registration ────────────────────────────────
 
@@ -137,7 +144,7 @@ public class UserService {
                    "Please add emergency contacts.";
         }
 
-        // TODO: Integrate with Notification Service (SMS / Email / Push)
+        // Integration with Notification Service (SMS / Email / Push)
         StringBuilder sb = new StringBuilder();
         sb.append("SOS Alert triggered for: ").append(user.getName()).append("\n");
         sb.append("Notifying emergency contacts:\n");
@@ -146,9 +153,28 @@ public class UserService {
               .append(" (").append(contact.getRelationship()).append(")")
               .append(" - ").append(contact.getPhone()).append("\n");
         }
+
+        try {
+            String message = "EMERGENCY! " + user.getName() + " has triggered an SOS alert. Emergency contacts have been notified.";
+            restTemplate.postForObject(notificationServiceUrl, new NotificationRequest(user.getName(), user.getEmail(), message), String.class);
+        } catch (Exception e) {
+            System.err.println("Failed to notify user by email: " + e.getMessage());
+        }
+
         sb.append("Notification service will notify them shortly.");
 
-        System.out.println(sb.toString()); // Replace with actual notification call
         return sb.toString();
+    }
+
+    // Inner class for notification request
+    private static class NotificationRequest {
+        public String name;
+        public String recipientEmail;
+        public String message;
+        public NotificationRequest(String name, String recipientEmail, String message) {
+            this.name = name;
+            this.recipientEmail = recipientEmail;
+            this.message = message;
+        }
     }
 }

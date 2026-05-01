@@ -5,6 +5,7 @@ import com.booking.payment.model.Booking;
 import com.booking.payment.model.BookingStatus;
 import com.booking.payment.repository.BookingRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,15 +23,18 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final RestTemplate restTemplate;
 
-    // URL of the Event Microservice (can be moved to application.properties)
-    private static final String EVENT_SERVICE_URL = "http://localhost:8081/events/";
+    @Value("${services.event.base-url:http://localhost:8083/events}")
+    private String eventServiceUrl;
+
+    @Value("${services.notification.base-url:http://localhost:8089/notify}")
+    private String notificationServiceUrl;
 
     /**
      * Creates a new booking by fetching event pricing from the Event Microservice.
      */
     public Booking createBooking(Booking booking) {
         // 1. Fetch Event details from Event Microservice
-        EventDTO event = restTemplate.getForObject(EVENT_SERVICE_URL + booking.getEventId(), EventDTO.class);
+        EventDTO event = restTemplate.getForObject(buildEventUrl(booking.getEventId()), EventDTO.class);
 
         if (event == null) {
             throw new RuntimeException("Event not found with ID: " + booking.getEventId());
@@ -59,7 +63,19 @@ public class BookingService {
         }
 
         // 5. Save to local DB
-        return bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Notify user immediately that the booking was created
+        try {
+            String recipientName = savedBooking.getFullName() != null ? savedBooking.getFullName() : savedBooking.getUserId();
+            String recipientEmail = savedBooking.getEmail();
+            String message = "Your booking for event " + savedBooking.getEventId() + " has been received. Status: " + savedBooking.getStatus();
+            restTemplate.postForObject(notificationServiceUrl, new NotificationRequest(recipientName, recipientEmail, message), String.class);
+        } catch (Exception e) {
+            System.err.println("Failed to send booking notification: " + e.getMessage());
+        }
+
+        return savedBooking;
     }
 
     /**
@@ -80,9 +96,39 @@ public class BookingService {
 
             // Set status to CONFIRMED
             booking.setStatus(BookingStatus.CONFIRMED);
+            Booking savedBooking = bookingRepository.save(booking);
+
+            // Notify User
+            try {
+                String message = "Your booking for event " + booking.getEventId() + " is confirmed. Amount: " + booking.getAmount();
+                String recipientName = booking.getFullName() != null ? booking.getFullName() : booking.getUserId();
+                String recipientEmail = booking.getEmail();
+                restTemplate.postForObject(notificationServiceUrl, new NotificationRequest(recipientName, recipientEmail, message), String.class);
+            } catch (Exception e) {
+                System.err.println("Failed to send notification: " + e.getMessage());
+            }
             
-            return bookingRepository.save(booking);
+            return savedBooking;
         });
+    }
+
+    // Inner class for notification request
+    private static class NotificationRequest {
+        public String name;
+        public String recipientEmail;
+        public String message;
+        public NotificationRequest(String name, String recipientEmail, String message) {
+            this.name = name;
+            this.recipientEmail = recipientEmail;
+            this.message = message;
+        }
+    }
+
+    private String buildEventUrl(String eventId) {
+        if (eventServiceUrl.endsWith("/")) {
+            return eventServiceUrl + eventId;
+        }
+        return eventServiceUrl + "/" + eventId;
     }
 
     /**
